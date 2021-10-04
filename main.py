@@ -1,16 +1,60 @@
-# This is a sample Python script.
+import argparse
+from socket import *
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+def run_server(port, protocol):
+    serverSocket = socket(AF_INET, protocol)
+    serverSocket.bind(('', port))
+    serverSocket.listen(1)
+    print('The server is ready to receive')
+    while 1:
+        connectionSocket, addr = serverSocket.accept()
+        ip, port = connectionSocket.getpeername()
+        connectionSocket.send(ip.encode())
+        connectionSocket.send(str(port).encode())
+        connectionSocket.close()
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def run_client(host, port, protocol):
+    clientSocket = socket(AF_INET, SOCK_STREAM)
+    clientSocket.connect((host, port))
+    # Получаем ответ от сервера
+    ip = clientSocket.recv(1024).decode()
+    port = clientSocket.recv(1024).decode()
+    print(f'From Server: {ip}:{port}')
+    clientSocket.close()
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('host', help='хост (ip адрес) сервера')
+    parser.add_argument('port', help='номер порта сервера')
+    parser.add_argument('-s', dest='s', action='store_true', help='запуск программы в режиме сервера')
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    # TCP | UDP
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-t', dest='t', action='store_true', help='связь по протоколу TCP')
+    group.add_argument('-u', dest='u', action='store_true', help='связь по протоколу UDP')
+
+    # LOGGING
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-o', dest='o', action='store_true', help='логирование в стандартный вывод')
+    group.add_argument('-f', dest='f', help='логирование в файл <file>')
+
+    args = parser.parse_args()
+
+    print(args.host)
+    print(args.port)
+    print(f"s={args.s}")
+    print(f"t={args.t}")
+    print(f"u={args.u}")
+    print(f"o={args.o}")
+    print(f"f={args.f}")
+
+    protocol = SOCK_STREAM if args.t else SOCK_DGRAM
+
+    if (args.s):
+        run_server(int(args.port), protocol)
+    else:
+        run_client(args.host, int(args.port), protocol)
+
+    # See PyCharm help at https://www.jetbrains.com/help/pycharm/
